@@ -1,38 +1,39 @@
-(ns blokus.rules)
+(ns blokus.rules
+  (:use [clojure.set]))
 
 (def +size+ 20)
 
 (def +pieces+ '(
     ;;  1
-    ([0 0])
+    #{[0 0]}
 
     ;;  2
-    ([0 0] [0 1])
+    #{[0 0] [0 1]}
 
     ;;  3
-    ([0 0] [0 1] [0 2])
-    ([0 0] [0 1] [1 1])
+    #{[0 0] [0 1] [0 2]}
+    #{[0 0] [0 1] [1 1]}
 
     ;;  4
-    ([0 0] [0 1] [0 2] [0 3])
-    ([0 2] [1 0] [1 1] [1 2])
-    ([0 0] [0 1] [0 2] [1 1])
-    ([0 0] [0 1] [1 0] [1 1])
-    ([0 0] [1 0] [1 1] [2 1])
+    #{[0 0] [0 1] [0 2] [0 3]}
+    #{[0 2] [1 0] [1 1] [1 2]}
+    #{[0 0] [0 1] [0 2] [1 1]}
+    #{[0 0] [0 1] [1 0] [1 1]}
+    #{[0 0] [1 0] [1 1] [2 1]}
 
     ;; 5
-    ([0 0] [0 1] [0 2] [0 3] [0 4])
-    ([0 3] [1 0] [1 1] [1 2] [1 3])
-    ([0 2] [0 3] [1 0] [1 1] [1 2])
-    ([0 1] [0 2] [1 0] [1 1] [1 2])
-    ([0 0] [0 2] [1 0] [1 1] [1 2])
-    ([0 0] [0 1] [0 2] [0 3] [1 1])
-    ([0 2] [1 0] [1 1] [1 2] [2 2])
-    ([0 0] [0 1] [0 2] [1 2] [2 2])
-    ([0 0] [1 0] [1 1] [2 1] [2 2])
-    ([0 0] [0 1] [1 1] [2 1] [2 2])
-    ([0 0] [0 1] [1 1] [2 1] [1 2])
-    ([0 1] [1 0] [1 1] [1 2] [2 1])))
+    #{[0 0] [0 1] [0 2] [0 3] [0 4]}
+    #{[0 3] [1 0] [1 1] [1 2] [1 3]}
+    #{[0 2] [0 3] [1 0] [1 1] [1 2]}
+    #{[0 1] [0 2] [1 0] [1 1] [1 2]}
+    #{[0 0] [0 2] [1 0] [1 1] [1 2]}
+    #{[0 0] [0 1] [0 2] [0 3] [1 1]}
+    #{[0 2] [1 0] [1 1] [1 2] [2 2]}
+    #{[0 0] [0 1] [0 2] [1 2] [2 2]}
+    #{[0 0] [1 0] [1 1] [2 1] [2 2]}
+    #{[0 0] [0 1] [1 1] [2 1] [2 2]}
+    #{[0 0] [0 1] [1 1] [2 1] [1 2]}
+    #{[0 1] [1 0] [1 1] [1 2] [2 1]}))
 
 (defn dump-p!
   [p]
@@ -58,25 +59,57 @@
 ;   (for [p +pieces+]
 ;     (dump-p! p)))
 
-(defn flip
-  [q]
-  (let [mx (reduce max (map first q))]
-    (sort (map (fn [[x y]] [(- mx x) y]) q))))
+(defn -flip
+  [p]
+  (let [mx (reduce max (map first p))]
+    (into #{} (map (fn [[x y]] [(- mx x) y]) p))))
 
-(defn rotate
-  [q]
-  (let [my (reduce max (map second q))]
-    (sort (map (fn [[x y]] [(- my y) x]) q))))
+(def flip (memoize -flip))
+
+(defn -rotate
+  [p]
+  (let [my (reduce max (map second p))]
+    (into #{} (map (fn [[x y]] [(- my y) x]) p))))
+
+(def rotate (memoize -rotate))
 
 (defn -orient
   [p]
-  (let [q (sort p)]
-    (distinct
-      (concat
-        (take 4 (iterate rotate q))
-        (take 4 (iterate rotate (flip q)))))))
+  (union
+    (into #{} (take 4 (iterate rotate p)))
+    (into #{} (take 4 (iterate rotate (flip p))))))
 
 (def orient (memoize -orient))
+
+(defn -borders
+  [p]
+  (letfn [(coords
+            [[x y]]
+            #{
+              [x (dec y)]
+              [x (inc y)]
+              [(dec x) y]
+              [(inc x) y]
+            })]
+    (let [all (reduce union (map coords p))]
+      (difference all p))))
+
+(def borders (memoize -borders))
+
+(defn -corners
+  [p]
+  (letfn [(coords
+            [[x y]]
+            #{
+              [(dec x) (dec y)]
+              [(dec x) (inc y)]
+              [(inc x) (dec y)]
+              [(inc x) (inc y)]
+            })]
+    (let [all (reduce union (map coords p))]
+      (difference all p (borders p)))))
+
+(def corners (memoize -corners))
 
 ; (let [p '([0 0] [1 0] [2 0] [0 1])]
 ;   (dorun
