@@ -59,57 +59,47 @@
 ;   (for [p +pieces+]
 ;     (dump-p! p)))
 
-(defn -flip
+(defn flip
   [p]
   (let [mx (reduce max (map first p))]
     (into #{} (map (fn [[x y]] [(- mx x) y]) p))))
 
-(def flip (memoize -flip))
+(def flip (memoize flip))
 
-(defn -rotate
+(defn rotate
   [p]
   (let [my (reduce max (map second p))]
     (into #{} (map (fn [[x y]] [(- my y) x]) p))))
 
-(def rotate (memoize -rotate))
+(def rotate (memoize rotate))
 
-(defn -orient
+(defn orient
   [p]
   (union
     (into #{} (take 4 (iterate rotate p)))
     (into #{} (take 4 (iterate rotate (flip p))))))
 
-(def orient (memoize -orient))
+(def orient (memoize orient))
 
-(defn -borders
+(defn coords-from
+  [deltas [x y]]
+  (into #{} (map (fn [[dx dy]] [(+ x dx) (+ y dy)]) deltas)))
+
+(defn borders
   [p]
-  (letfn [(coords
-            [[x y]]
-            #{
-              [x (dec y)]
-              [x (inc y)]
-              [(dec x) y]
-              [(inc x) y]
-            })]
-    (let [all (reduce union (map coords p))]
-      (difference all p))))
+  (let [deltas #{[-1 0] [0 -1] [0 1] [1 0]}
+        all (reduce union (map (partial coords-from deltas) p))]
+    (difference all p)))
 
-(def borders (memoize -borders))
+(def borders (memoize borders))
 
-(defn -corners
+(defn corners
   [p]
-  (letfn [(coords
-            [[x y]]
-            #{
-              [(dec x) (dec y)]
-              [(dec x) (inc y)]
-              [(inc x) (dec y)]
-              [(inc x) (inc y)]
-            })]
-    (let [all (reduce union (map coords p))]
-      (difference all p (borders p)))))
+  (let [deltas #{[-1 -1] [-1 1] [1 -1] [1 1]}
+        all (reduce union (map (partial coords-from deltas) p))]
+    (difference all p (borders p))))
 
-(def corners (memoize -corners))
+(def corners (memoize corners))
 
 ; (let [p '([0 0] [1 0] [2 0] [0 1])]
 ;   (dorun
