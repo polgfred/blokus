@@ -3,37 +3,45 @@
 
 (def +size+ 20)
 
+(defmacro coord
+  [x y]
+  `(vector-of :int ~x ~y))
+
+(defmacro coords
+  [& pairs]
+  `(eval (into #{} (map #(conj % 'coord) '~pairs))))
+
 (def +pieces+ [
     ;;  1
-    #{[0 0]}
+    (coords (0 0))
 
     ;;  2
-    #{[0 0] [0 1]}
+    (coords (0 0) (0 1))
 
     ;;  3
-    #{[0 0] [0 1] [0 2]}
-    #{[0 0] [0 1] [1 1]}
+    (coords (0 0) (0 1) (0 2))
+    (coords (0 0) (0 1) (1 1))
 
     ;;  4
-    #{[0 0] [0 1] [0 2] [0 3]}
-    #{[0 2] [1 0] [1 1] [1 2]}
-    #{[0 0] [0 1] [0 2] [1 1]}
-    #{[0 0] [0 1] [1 0] [1 1]}
-    #{[0 0] [1 0] [1 1] [2 1]}
+    (coords (0 0) (0 1) (0 2) (0 3))
+    (coords (0 2) (1 0) (1 1) (1 2))
+    (coords (0 0) (0 1) (0 2) (1 1))
+    (coords (0 0) (0 1) (1 0) (1 1))
+    (coords (0 0) (1 0) (1 1) (2 1))
 
     ;; 5
-    #{[0 0] [0 1] [0 2] [0 3] [0 4]}
-    #{[0 3] [1 0] [1 1] [1 2] [1 3]}
-    #{[0 2] [0 3] [1 0] [1 1] [1 2]}
-    #{[0 1] [0 2] [1 0] [1 1] [1 2]}
-    #{[0 0] [0 2] [1 0] [1 1] [1 2]}
-    #{[0 0] [0 1] [0 2] [0 3] [1 1]}
-    #{[0 2] [1 0] [1 1] [1 2] [2 2]}
-    #{[0 0] [0 1] [0 2] [1 2] [2 2]}
-    #{[0 0] [1 0] [1 1] [2 1] [2 2]}
-    #{[0 0] [0 1] [1 1] [2 1] [2 2]}
-    #{[0 0] [0 1] [1 1] [2 1] [1 2]}
-    #{[0 1] [1 0] [1 1] [1 2] [2 1]}])
+    (coords (0 0) (0 1) (0 2) (0 3) (0 4))
+    (coords (0 3) (1 0) (1 1) (1 2) (1 3))
+    (coords (0 2) (0 3) (1 0) (1 1) (1 2))
+    (coords (0 1) (0 2) (1 0) (1 1) (1 2))
+    (coords (0 0) (0 2) (1 0) (1 1) (1 2))
+    (coords (0 0) (0 1) (0 2) (0 3) (1 1))
+    (coords (0 2) (1 0) (1 1) (1 2) (2 2))
+    (coords (0 0) (0 1) (0 2) (1 2) (2 2))
+    (coords (0 0) (1 0) (1 1) (2 1) (2 2))
+    (coords (0 0) (0 1) (1 1) (2 1) (2 2))
+    (coords (0 0) (0 1) (1 1) (2 1) (1 2))
+    (coords (0 1) (1 0) (1 1) (1 2) (2 1))])
 
 (defn dump-p!
   [p]
@@ -48,8 +56,6 @@
                   cs (vec (repeat (inc mx) " "))]
               (for [r (rows p)]
                 (reduce (fn [cs [x y]] (assoc cs x "*")) cs r))))]
-    (println (str p ":"))
-    (println)
     (dorun
       (for [r (repr p)]
         (println (str "  [" (reduce str r) "]"))))
@@ -62,14 +68,14 @@
 (defn flip
   [p]
   (let [mx (reduce max (map first p))]
-    (into #{} (map (fn [[x y]] [(- mx x) y]) p))))
+    (into #{} (map (fn [[x y]] (coord (- mx x) y)) p))))
 
 (def flip (memoize flip))
 
 (defn rotate
   [p]
   (let [my (reduce max (map second p))]
-    (into #{} (map (fn [[x y]] [(- my y) x]) p))))
+    (into #{} (map (fn [[x y]] (coord (- my y) x)) p))))
 
 (def rotate (memoize rotate))
 
@@ -83,11 +89,11 @@
 
 (defn coords-from
   [deltas [x y]]
-  (into #{} (map (fn [[dx dy]] [(+ x dx) (+ y dy)]) deltas)))
+  (into #{} (map (fn [[dx dy]] (coord (+ x dx) (+ y dy))) deltas)))
 
 (defn borders
   [p]
-  (let [deltas [[-1 0] [0 -1] [0 1] [1 0]]
+  (let [deltas (coords (-1 0) (0 -1) (0 1) (1 0))
         coords (map (partial coords-from deltas) p)
         all    (reduce union coords)]
     (difference all p)))
@@ -96,14 +102,14 @@
 
 (defn corners
   [p]
-  (let [deltas [[-1 -1] [-1 1] [1 -1] [1 1]]
+  (let [deltas (coords (-1 -1) (-1 1) (1 -1) (1 1))
         coords (map (partial coords-from deltas) p)
         all    (reduce union coords)]
     (difference all p (borders p))))
 
 (def corners (memoize corners))
 
-; (let [p '([0 0] [1 0] [2 0] [0 1])]
+; (let [p '((coord 0 0) (coord 1 0) (coord 2 0) (coord 0 1))]
 ;   (dorun
 ;     (for [p (orient p)]
 ;       (dump-p! p))))
@@ -112,14 +118,14 @@
 
 (defn dump-b!
   [b]
-  (let [chr-s {0 "." 1 "b" 2 "g" 3 "r" 4 "y"}]
+  (let [chr-s { 0 "." 1 "b" 2 "g" 3 "r" 4 "y" }]
     (dorun
       (for [y (range +size+)]
         (println
-          (str "[" (reduce str (map chr-s (get b y))) "]"))))
+          (str "  [" (reduce str (map chr-s (get b y))) "]"))))
     (println)))
 
-(def home [nil [0 0] [19 0] [19 19] [0 19]])
+(def home [nil (coord 0 0) (coord 19 0) (coord 19 19) (coord 0 19)])
 
 (defn sq-get
   ([b x y]
@@ -167,7 +173,7 @@
   (reduce concat (map (partial collect b s) ps)))
 
 ; (let [b (sq-put (sq-put +board+ 0 0 1) 1 0 1)
-;       p '([0 0] [1 0] [2 0] [1 1])]
+;       p '((coord 0 0) (coord 1 0) (coord 2 0) (coord 1 1))]
 ;   (do
 ;     (dump-b! b)
 ;     (dorun
@@ -178,7 +184,7 @@
   [b p s tx ty]
   (reduce (fn [b [dx dy]] (sq-put b (+ tx dx) (+ ty dy) s)) b p))
 
-; (let [p '([0 0] [1 0] [2 0] [1 1])]
+; (let [p '((coord 0 0) (coord 1 0) (coord 2 0) (coord 1 1))]
 ;   (do
 ;     (dump-b! (play +board+ p 1 5 5))
 ;     (dump-b! (play +board+ (rotate p) 3 5 5))))
