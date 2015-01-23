@@ -43,28 +43,6 @@
     (coords (0 0) (0 1) (1 1) (2 1) (1 2))
     (coords (0 1) (1 0) (1 1) (1 2) (2 1))])
 
-(defn dump-p!
-  [p]
-  (letfn [(rows
-            [p]
-            (let [my (reduce max (map second p))]
-              (for [j (range (inc my))]
-                (filter (fn [[x y]] (= j y)) p))))
-          (repr
-            [p]
-            (let [mx (reduce max (map first p))
-                  cs (vec (repeat (inc mx) " "))]
-              (for [r (rows p)]
-                (reduce (fn [cs [x y]] (assoc cs x "*")) cs r))))]
-    (dorun
-      (for [r (repr p)]
-        (println (str "  [" (reduce str r) "]"))))
-    (println)))
-
-; (dorun
-;   (for [p +pieces+]
-;     (dump-p! p)))
-
 (defn flip
   [p]
   (let [mx (reduce max (map first p))]
@@ -115,15 +93,6 @@
 ;       (dump-p! p))))
 
 (def +board+ (vec (repeat +size+ (vec (repeat +size+ 0)))))
-
-(defn dump-b!
-  [b]
-  (let [chr-s { 0 "." 1 "b" 2 "g" 3 "r" 4 "y" }]
-    (dorun
-      (for [y (range +size+)]
-        (println
-          (str "  [" (reduce str (map chr-s (get b y))) "]"))))
-    (println)))
 
 (def home [nil (coord 0 0) (coord 19 0) (coord 19 19) (coord 0 19)])
 
@@ -188,3 +157,34 @@
 ;   (do
 ;     (dump-b! (play +board+ p 1 5 5))
 ;     (dump-b! (play +board+ (rotate p) 3 5 5))))
+
+(defn dump-p!
+  [p]
+  (let [bp (borders p)
+        cp (corners p)
+        rx (range -1 (+ 2 (reduce max (map first p))))
+        ry (range -1 (+ 2 (reduce max (map second p))))]
+    (letfn [(repr
+              [x y]
+              (let [c (coord x y)]
+                (cond
+                  (contains? p  c) "\u001B[7m*\u001B[0m"
+                  (contains? bp c) "\u001B[31m-\u001B[0m"
+                  (contains? cp c) "\u001B[32m@\u001B[0m"
+                  :else            " ")))
+            (row
+              [y]
+              (apply str (map #(repr % y) rx)))]
+      (dorun
+        (for [y ry]
+          (println (str "  [" (row y) "]"))))
+        (println))))
+
+(defn dump-b!
+  [b]
+  (let [chr-s { 0 "." 1 "b" 2 "g" 3 "r" 4 "y" }]
+    (dorun
+      (for [y (range +size+)]
+        (println
+          (str "  [" (reduce str (map chr-s (get b y))) "]"))))
+    (println)))
