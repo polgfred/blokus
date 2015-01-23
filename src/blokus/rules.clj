@@ -3,7 +3,7 @@
 
 (def +size+ 20)
 
-(def +pieces+ '(
+(def +pieces+ [
     ;;  1
     #{[0 0]}
 
@@ -33,7 +33,7 @@
     #{[0 0] [1 0] [1 1] [2 1] [2 2]}
     #{[0 0] [0 1] [1 1] [2 1] [2 2]}
     #{[0 0] [0 1] [1 1] [2 1] [1 2]}
-    #{[0 1] [1 0] [1 1] [1 2] [2 1]}))
+    #{[0 1] [1 0] [1 1] [1 2] [2 1]}])
 
 (defn dump-p!
   [p]
@@ -87,16 +87,18 @@
 
 (defn borders
   [p]
-  (let [deltas #{[-1 0] [0 -1] [0 1] [1 0]}
-        all (reduce union (map (partial coords-from deltas) p))]
+  (let [deltas [[-1 0] [0 -1] [0 1] [1 0]]
+        coords (map (partial coords-from deltas) p)
+        all    (reduce union coords)]
     (difference all p)))
 
 (def borders (memoize borders))
 
 (defn corners
   [p]
-  (let [deltas #{[-1 -1] [-1 1] [1 -1] [1 1]}
-        all (reduce union (map (partial coords-from deltas) p))]
+  (let [deltas [[-1 -1] [-1 1] [1 -1] [1 1]]
+        coords (map (partial coords-from deltas) p)
+        all    (reduce union coords)]
     (difference all p (borders p))))
 
 (def corners (memoize corners))
